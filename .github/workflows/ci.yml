@@ -17,11 +17,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 设置 Node.js 和 PNPM 环境
-      - name: Setup Node.js and PNPM
+      # 2. 设置 Node.js 环境 (使用官方 Action)
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22" # 使用 "22" 来获取最新的 v22 版本
+
+      # 3. 设置 PNPM (安装 pnpm 本身)
+      - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
-          node-version: "22.16.0"
           version: "10.8.1"
 
       - name: Verify Node.js Version
@@ -38,7 +43,7 @@ jobs:
         with:
           anchor-version: "0.31.1"
           solana-cli-version: "2.2.19"
-          node-version: "22.16.0"
+          node-version: "22"
 
   release:
     name: Release
