@@ -1,0 +1,24 @@
+[toolchain]
+package_manager = "pnpm"
+
+[features]
+resolution = true
+skip-lint = false
+
+[workspace]
+members = ["programs/state-pass"]
+
+[programs.localnet]
+state_pass = "DQVhwp8Vg11LJKwrqrHHzxYpLzxjaAVw72s8WgR555bi"
+
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+# test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "pnpm exec ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts --reporter mochawesome"

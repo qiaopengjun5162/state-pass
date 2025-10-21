@@ -1,0 +1,22 @@
+[package]
+description = "Created with Anchor"
+edition = "2021"
+name = "state-pass"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "state_pass"
+
+[features]
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+
+
+[dependencies]
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
+anchor-spl = { version = "0.32.1", features = ["token_2022_extensions"] }
