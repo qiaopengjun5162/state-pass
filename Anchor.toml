@@ -9,7 +9,7 @@ skip-lint = false
 members = ["programs/state-pass"]
 
 [programs.localnet]
-state_pass = "DQVhwp8Vg11LJKwrqrHHzxYpLzxjaAVw72s8WgR555bi"
+state_pass = "F3uXqosNaNUfi76dSGLQm8CFYdSyRfzZixrVhQNNLqUV"
 
 
 [registry]

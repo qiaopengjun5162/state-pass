@@ -17,17 +17,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. 设置 Node.js 环境 (使用官方 Action)
+      # 2. 设置 Node.js 环境
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: "22" # 使用 "22" 来获取最新的 v22 版本
+          node-version: "22"
+          cache: "pnpm"
 
       # 3. 设置 PNPM (安装 pnpm 本身)
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
           version: "10.8.1"
+
+      # 4. 缓存 pnpm 依赖，加快安装
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
 
       - name: Verify Node.js Version
         run: node -v # 应输出 v22.16.0

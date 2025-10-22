@@ -33,7 +33,7 @@ endif
 # Note: Anchor uses snake_case in the programs directory and inside Rust.
 
 # Hardcode the program name for robustness in a single-program workspace
-PROGRAM_NAME := state-pass
+PROGRAM_NAME := state_pass
 
 # Auto-detect the program ID from the `declare_id!` macro in lib.rs.
 # This assumes the lib.rs file exists.

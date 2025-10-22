@@ -11,7 +11,7 @@ pub mod state;
 // 引入模块中的内容
 use instructions::*;
 
-declare_id!("DQVhwp8Vg11LJKwrqrHHzxYpLzxjaAVw72s8WgR555bi");
+declare_id!("F3uXqosNaNUfi76dSGLQm8CFYdSyRfzZixrVhQNNLqUV");
 
 #[program]
 pub mod state_pass {

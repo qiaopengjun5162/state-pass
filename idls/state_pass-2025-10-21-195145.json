@@ -1,0 +1,204 @@
+{
+  "address": "F3uXqosNaNUfi76dSGLQm8CFYdSyRfzZixrVhQNNLqUV",
+  "metadata": {
+    "name": "state_pass",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "initialize",
+      "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
+      "accounts": [],
+      "args": []
+    },
+    {
+      "name": "mint_nft",
+      "docs": ["铸造初始 StatePass NFT (Level 1)"],
+      "discriminator": [211, 57, 6, 167, 15, 219, 35, 251],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_account",
+          "writable": true
+        },
+        {
+          "name": "nft_authority",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  110, 102, 116, 95, 97, 117, 116, 104, 111, 114, 105, 116, 121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "symbol",
+          "type": "string"
+        },
+        {
+          "name": "uri",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "update_pass_level",
+      "docs": [
+        "后端服务调用此指令，用于将 NFT 升级到新的等级。",
+        "签名者必须是 NFT Authority PDA。"
+      ],
+      "discriminator": [217, 6, 118, 42, 76, 136, 172, 157],
+      "accounts": [
+        {
+          "name": "mint",
+          "writable": true
+        },
+        {
+          "name": "nft_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  110, 102, 116, 95, 97, 117, 116, 104, 111, 114, 105, 116, 121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        }
+      ],
+      "args": [
+        {
+          "name": "new_level",
+          "type": "u8"
+        },
+        {
+          "name": "new_uri",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "NftAuthority",
+      "discriminator": [194, 127, 219, 16, 219, 18, 250, 12]
+    }
+  ],
+  "events": [
+    {
+      "name": "NftMetadataUpdated",
+      "discriminator": [50, 210, 53, 234, 245, 135, 73, 13]
+    },
+    {
+      "name": "NftMinted",
+      "discriminator": [175, 29, 105, 0, 195, 2, 245, 38]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidLevel",
+      "msg": "The provided level is invalid or the maximum level has been reached."
+    }
+  ],
+  "types": [
+    {
+      "name": "NftAuthority",
+      "type": {
+        "kind": "struct",
+        "fields": []
+      }
+    },
+    {
+      "name": "NftMetadataUpdated",
+      "docs": [
+        "Event emitted when the NFT's metadata fields (like level or URI) are updated."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nft_mint",
+            "docs": ["The public key of the updated NFT Mint account."],
+            "type": "pubkey"
+          },
+          {
+            "name": "field",
+            "docs": [
+              "The field key that was updated (e.g., \"level\" or \"uri\")."
+            ],
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "docs": ["The new value of the field."],
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NftMinted",
+      "docs": [
+        "Event emitted when a new StatePass NFT is successfully minted."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nft_mint",
+            "docs": ["The public key of the new NFT Mint account."],
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "docs": ["The public key of the recipient (the signer/owner)."],
+            "type": "pubkey"
+          }
+        ]
+      }
+    }
+  ]
+}
