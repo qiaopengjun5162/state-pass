@@ -1,6 +1,7 @@
 # 🔗 StatePass: 基于 Token-2022 的动态 NFT (dNFT) 项目
 
 Solana Anchor program leveraging the Token-2022 Metadata extension to create dynamic, upgradable StatePass NFTs whose metadata is fully controlled by a Program Derived Address (PDA).
+StatePass 是一个基于 $\text{Token}$-2022 的动态数字资产标准，它将静态 $\text{NFT}$ 转化为可进化的会员卡、支付凭证和线下动态身份。
 
 🚀 项目概述 (Project Overview)
 
