@@ -14,7 +14,7 @@ import { expect } from "chai";
 
 // Program ID from lib.rs
 const PROGRAM_ID = new anchor.web3.PublicKey(
-  "DQVhwp8Vg11LJKwrqrHHzxYpLzxjaAVw72s8WgR555bi",
+  "21xpRqRTFk7N7ybdPA2RyTmRqQB9FH4Xerty9jeTU1Dx",
 );
 
 // 辅助函数：引入延迟
@@ -35,6 +35,12 @@ describe("state-pass", () => {
   // nftAuthorityPDA 的地址派生
   const [nftAuthorityPDA] = anchor.web3.PublicKey.findProgramAddressSync(
     [Buffer.from("nft_authority")],
+    PROGRAM_ID,
+  );
+
+  // RateConfig PDA address
+  const [rateConfigPDA] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("rate_config")],
     PROGRAM_ID,
   );
 
@@ -264,5 +270,58 @@ describe("state-pass", () => {
     console.log(
       `✅ Event check passed! Decoded event: ${event.name}, Field: ${event.data.field}, Value: ${event.data.value}`,
     );
+  });
+
+  it("4. Initializes the global RateConfig", async () => {
+    await ensureAirdrop();
+
+    console.log("RateConfig PDA:", rateConfigPDA.toBase58());
+
+    const level1Rate = new anchor.BN(100);
+    const level2Rate = new anchor.BN(200);
+    const level3Rate = new anchor.BN(300);
+    const maxLevel = 3;
+
+    const tx = await program.methods
+      .initializeRateConfig(level1Rate, level2Rate, level3Rate, maxLevel)
+      .accounts({
+        signer: signer,
+        rateConfig: rateConfigPDA,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    console.log("initializeRateConfig TX:", tx);
+
+    // Read back from chain
+    await sleep(500);
+    const configAccount = await program.account.rateConfig.fetch(rateConfigPDA);
+    expect(configAccount.authority.toBase58()).to.equal(signer.toBase58());
+    expect(configAccount.level1Rate.toString()).to.equal("100");
+    expect(configAccount.level2Rate.toString()).to.equal("200");
+    expect(configAccount.level3Rate.toString()).to.equal("300");
+    expect(configAccount.maxLevel).to.equal(3);
+
+    console.log("✅ RateConfig initialized!");
+  });
+
+  it("5. Updates a rate via setRate (authority only)", async () => {
+    const newLevel2Rate = new anchor.BN(250);
+
+    const tx = await program.methods
+      .setRate(2, newLevel2Rate)
+      .accounts({
+        signer: signer,
+        rateConfig: rateConfigPDA,
+      })
+      .rpc();
+
+    console.log("setRate TX:", tx);
+
+    await sleep(500);
+    const configAccount = await program.account.rateConfig.fetch(rateConfigPDA);
+    expect(configAccount.level2Rate.toString()).to.equal("250");
+
+    console.log("✅ setRate test passed! Level 2 rate updated to 250.");
   });
 });

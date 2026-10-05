@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StatePass × x402 — Programmable API Identity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0f14;
+  --surface: #161a22;
+  --surface2: #1e2430;
+  --border: #2a2f3e;
+  --text: #e4e8f0;
+  --text2: #8b92a8;
+  --accent: #9945FF;
+  --accent2: #14F195;
+  --green: #14F195;
+  --red: #ff4d6a;
+  --yellow: #ffd43b;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+.container { max-width: 680px; width: 100%; }
+header {
+  text-align: center;
+  padding: 40px 0 24px;
+}
+header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+header p {
+  color: var(--text2);
+  margin-top: 8px;
+  font-size: 14px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card h2 .badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-weight: 500;
+}
+.badge-green { background: rgba(20, 241, 149, 0.15); color: var(--green); }
+.badge-yellow { background: rgba(255, 212, 59, 0.15); color: var(--yellow); }
+.badge-red { background: rgba(255, 77, 106, 0.15); color: var(--red); }
+.badge-neutral { background: rgba(137, 146, 168, 0.15); color: var(--text2); }
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--surface2);
+  font-size: 14px;
+}
+.row:last-child { border-bottom: none; }
+.row .label { color: var(--text2); }
+.row .value { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { filter: brightness(1.15); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+.btn-secondary { background: var(--surface2); color: var(--text); }
+.btn-secondary:hover { background: var(--border); }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.steps { counter-reset: step; }
+.step {
+  counter-increment: step;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--surface2);
+  opacity: 0.5;
+  transition: all 0.3s;
+}
+.step.active { opacity: 1; }
+.step.done { opacity: 0.6; }
+.step.done .step-number { background: var(--green); }
+.step:last-child { border-bottom: none; }
+.step-header { display: flex; align-items: center; gap: 12px; }
+.step-number {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.step-label { font-weight: 500; font-size: 14px; }
+.step-status { margin-left: auto; font-size: 12px; }
+.step-body { margin-top: 10px; margin-left: 40px; font-size: 13px; color: var(--text2); }
+.step-body pre {
+  background: var(--surface2);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-x: auto;
+  margin-top: 8px;
+  color: var(--accent2);
+}
+.log-area {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px;
+  font-family: 'SF Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+.log-area .log-entry { color: var(--text2); }
+.log-area .log-entry.success { color: var(--green); }
+.log-area .log-entry.error { color: var(--red); }
+.log-area .log-entry.info { color: var(--accent2); }
+.hidden { display: none; }
+.flex { display: flex; gap: 8px; }
+.flex .btn { flex: 1; }
+#nftInfo { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>🪪 StatePass × x402</h1>
+  <p>Pay per API call. No API keys. Just your NFT.</p>
+</header>
+
+<!-- Step 1: Connect Wallet -->
+<div class="card" id="card-connect">
+  <h2>👛 1. Connect Wallet</h2>
+  <p style="color: var(--text2); font-size: 13px; margin-bottom: 12px;">
+    Connect your Solana wallet (Phantom / Backpack) to mint or verify your StatePass.
+  </p>
+  <button class="btn btn-primary" id="btnConnect" onclick="connectWallet()">
+    🔗 Connect Wallet
+  </button>
+  <div id="walletInfo" class="hidden" style="margin-top: 12px;">
+    <div class="row"><span class="label">Wallet</span><span class="value" id="walletAddress">—</span></div>
+    <div class="row"><span class="label">SOL Balance</span><span class="value" id="solBalance">—</span></div>
+    <div class="row"><span class="label">USDC Balance</span><span class="value" id="usdcBalance">—</span></div>
+    <div class="flex" style="margin-top: 10px;">
+      <button class="btn btn-secondary" onclick="airdropUsdc()" style="font-size: 13px;">💧 Get Devnet USDC</button>
+    </div>
+  </div>
+</div>
+
+<!-- Step 2: NFT Info -->
+<div class="card hidden" id="card-nft">
+  <h2>🎫 2. StatePass dNFT</h2>
+  <div id="nftInfo">
+    <div class="row"><span class="label">Mint</span><span class="value" id="nftMint">—</span></div>
+    <div class="row"><span class="label">Level</span><span class="value" id="nftLevel">—</span></div>
+    <div class="row"><span class="label">Name</span><span class="value" id="nftName">—</span></div>
+    <div class="row"><span class="label">Symbol</span><span class="value" id="nftSymbol">—</span></div>
+  </div>
+  <div id="nftEmpty" style="text-align: center; padding: 20px 0;">
+    <p style="color: var(--text2); margin-bottom: 12px;">You don't have a StatePass NFT yet.</p>
+    <button class="btn btn-primary" onclick="mintNFT()">🪄 Mint StatePass</button>
+  </div>
+</div>
+
+<!-- Step 3: Server Status -->
+<div class="card hidden" id="card-server">
+  <h2>⚙️ 3. Server &amp; RateConfig</h2>
+  <div id="serverInfo">
+    <div class="row"><span class="label">Program ID</span><span class="value" id="srvProgram">—</span></div>
+    <div class="row"><span class="label">RateConfig PDA</span><span class="value" id="srvPda">—</span></div>
+    <div class="row"><span class="label">Level 1</span><span class="value" id="srvL1">—</span></div>
+    <div class="row"><span class="label">Level 2</span><span class="value" id="srvL2">—</span></div>
+    <div class="row"><span class="label">Level 3</span><span class="value" id="srvL3">—</span></div>
+  </div>
+</div>
+
+<!-- Step 4: x402 Payment Flow -->
+<div class="card hidden" id="card-pay">
+  <h2>💸 4. x402 Payment Demo</h2>
+  <p style="color: var(--text2); font-size: 13px; margin-bottom: 12px;">
+    Request premium content with your StatePass. The server reads your NFT level, quotes a price, and charges USDC.
+  </p>
+  
+  <div class="steps">
+    <div class="step active" id="step-quote">
+      <div class="step-header">
+        <span class="step-number">1</span>
+        <span class="step-label">Get Payment Quote</span>
+        <span class="step-status" id="status-quote">⏳ waiting</span>
+      </div>
+      <div class="step-body">
+        Server reads dNFT level → looks up RateConfig → returns 402 with price
+        <button class="btn btn-secondary" style="margin-top: 10px;" onclick="getQuote()">📋 Get Quote</button>
+        <div id="quoteResult" class="hidden" style="margin-top: 8px;">
+          <div class="row"><span class="label">Level</span><span class="value" id="quoteLevel">—</span></div>
+          <div class="row"><span class="label">Price</span><span class="value" id="quotePrice">—</span></div>
+          <div class="row"><span class="label">Message</span><span class="value" id="quoteMsg">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step" id="step-pay">
+      <div class="step-header">
+        <span class="step-number">2</span>
+        <span class="step-label">Sign &amp; Pay</span>
+        <span class="step-status" id="status-pay">⏳ waiting</span>
+      </div>
+      <div class="step-body">
+        Sign a USDC transfer (not submitted) → send proof to server → server verifies & unlocks premium content
+        <button class="btn btn-primary" style="margin-top: 10px;" id="btnPay" disabled onclick="payAndUnlock()">
+          💳 Pay &amp; Unlock
+        </button>
+      </div>
+    </div>
+
+    <div class="step" id="step-result">
+      <div class="step-header">
+        <span class="step-number">3</span>
+        <span class="step-label">Result</span>
+        <span class="step-status" id="status-result">⏳ waiting</span>
+      </div>
+      <div class="step-body" id="resultBody">
+        <div id="premiumContent" class="hidden" style="background: rgba(20,241,149,0.08); border: 1px solid rgba(20,241,149,0.2); border-radius: 10px; padding: 14px;">
+          <p style="color: var(--green); font-weight: 600; margin-bottom: 8px;">✅ Premium Content Unlocked!</p>
+          <p id="premiumData" style="font-size: 14px;"></p>
+          <p id="premiumTx" style="font-size: 11px; color: var(--text2); margin-top: 8px;"></p>
+        </div>
+        <div id="payError" class="hidden" style="background: rgba(255,77,106,0.08); border: 1px solid rgba(255,77,106,0.2); border-radius: 10px; padding: 14px;">
+          <p style="color: var(--red); font-weight: 600;">❌ Payment Failed</p>
+          <pre id="payErrorDetail" style="margin-top: 6px;"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="logArea" class="log-area hidden">
+    <div class="log-entry info">// Transaction log</div>
+  </div>
+</div>
+
+<footer style="text-align: center; padding: 24px 0; color: var(--text2); font-size: 12px;">
+  StatePass × x402 — Solana x402 Hackathon 2026
+</footer>
+
+</div>
+
+<script src="https://unpkg.com/@solana/web3.js@1.98.0/lib/index.iife.min.js"></script>
+<script>
+// ── Config ──
+const RPC_URL = "https://api.devnet.solana.com";
+const SERVER_URL = "http://localhost:3001";
+const USDC_MINT_DEVNET = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+const connection = new solanaWeb3.Connection(RPC_URL, "confirmed");
+
+// State
+let wallet = null;
+let publicKey = null;
+let nftMint = null;
+let nftLevel = null;
+let currentQuote = null;
+let provider = null;
+
+// ── Utils ──
+function log(msg, type = "info") {
+  const el = document.getElementById("logArea");
+  el.classList.remove("hidden");
+  const div = document.createElement("div");
+  div.className = `log-entry ${type}`;
+  div.textContent = `> ${msg}`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setStatus(id, text, type = "neutral") {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = type === "success" ? "✅ " + text : type === "error" ? "❌ " + text : type === "loading" ? "⏳ " + text : "● " + text;
+  el.style.color = type === "success" ? "var(--green)" : type === "error" ? "var(--red)" : type === "loading" ? "var(--accent2)" : "var(--text2)";
+}
+
+function shorten(pk, n = 6) {
+  if (!pk) return "—";
+  const s = typeof pk === "string" ? pk : pk.toBase58();
+  return s.slice(0, n) + "..." + s.slice(-n);
+}
+
+// ── Step 1: Connect ──
+async function connectWallet() {
+  if (typeof window.solana === "undefined" && typeof window.phantom === "undefined" && typeof window.backpack === "undefined") {
+    log("No wallet extension found. Install Phantom or Backpack.", "error");
+    alert("Please install Phantom or Backpack wallet extension.");
+    return;
+  }
+
+  provider = window.phantom?.solana || window.solana || window.backpack;
+
+  try {
+    const resp = await provider.connect();
+    publicKey = resp.publicKey;
+    wallet = publicKey;
+
+    document.getElementById("btnConnect").textContent = "✅ Connected";
+    document.getElementById("btnConnect").disabled = true;
+    document.getElementById("walletAddress").textContent = publicKey.toBase58();
+    document.getElementById("walletInfo").classList.remove("hidden");
+
+    const bal = await connection.getBalance(publicKey);
+    document.getElementById("solBalance").textContent = (bal / 1e9).toFixed(4) + " SOL";
+
+    // Check USDC balance
+    await checkUsdcBalance();
+
+    log(`Connected: ${shorten(publicKey)}`, "success");
+
+    // Show next steps
+    document.getElementById("card-nft").classList.remove("hidden");
+    document.getElementById("card-server").classList.remove("hidden");
+    document.getElementById("card-pay").classList.remove("hidden");
+
+    await loadServerStatus();
+    await findMyNft();
+  } catch (e) {
+    log(`Connection failed: ${e.message}`, "error");
+  }
+}
+
+async function checkUsdcBalance() {
+  try {
+    const usdcMint = new solanaWeb3.PublicKey(USDC_MINT_DEVNET);
+    const [ata] = solanaWeb3.PublicKey.findProgramAddress(
+      [publicKey.toBuffer(), solanaWeb3.TOKEN_PROGRAM_ID.toBuffer(), usdcMint.toBuffer()],
+      solanaWeb3.ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+    const acc = await connection.getAccountInfo(ata);
+    if (acc) {
+      const bal = await connection.getTokenAccountBalance(ata);
+      document.getElementById("usdcBalance").textContent = parseFloat(bal.value.uiAmount).toFixed(4) + " USDC";
+    } else {
+      document.getElementById("usdcBalance").textContent = "0 USDC (mint below)";
+    }
+  } catch {
+    document.getElementById("usdcBalance").textContent = "—";
+  }
+}
+
+// ── Devnet USDC Airdrop ──
+async function airdropUsdc() {
+  if (!publicKey) { alert("Connect wallet first"); return; }
+  setStatus("status-airdrop", "requesting", "loading");
+  log("Requesting devnet USDC airdrop...", "info");
+
+  try {
+    // Use devnet USDC mint's ATA and test token faucet
+    const resp = await fetch(`${SERVER_URL}/api/faucet/usdc?wallet=${publicKey.toBase58()}`);
+    const data = await resp.json();
+    if (resp.ok) {
+      setStatus("status-airdrop", "success", "success");
+      log(`✅ USDC airdropped! TX: ${shorten(data.signature, 16)}`, "success");
+      await checkUsdcBalance();
+    } else {
+      setStatus("status-airdrop", `error: ${data.error}`, "error");
+      log(`USDC airdrop failed: ${data.error}`, "error");
+    }
+  } catch (e) {
+    // Fallback: direct airdrop via devnet USDC mint
+    log("Server airdrop unavailable, try using devnet USDC faucet directly", "error");
+    setStatus("status-airdrop", "use Solana CLI: spl-token faucet USDC", "error");
+  }
+}
+
+// ── Step 2: Find NFT ──
+async function findMyNft() {
+  if (!publicKey) return;
+  
+  try {
+    // Get token accounts owned by user
+    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+      publicKey,
+      { programId: solanaWeb3.Token2022_PROGRAM_ID }
+    );
+    
+    log(`Found ${tokenAccounts.value.length} Token-2022 accounts`, "info");
+    
+    let found = null;
+    for (const ta of tokenAccounts.value) {
+      if (ta.account.data.parsed.info.tokenAmount.uiAmount > 0) {
+        const mint = ta.account.data.parsed.info.mint;
+        log(`Checking mint: ${shorten(mint)}`, "info");
+        
+        // Check metadata for StatePass
+        try {
+          const meta = await getTokenMetadata(mint);
+          if (meta && meta.name && meta.name.includes("StatePass")) {
+            found = { mint, ...meta };
+            break;
+          }
+        } catch (e) {
+          // skip
+        }
+      }
+    }
+    
+    if (found) {
+      nftMint = found.mint;
+      nftLevel = found.level || 1;
+      document.getElementById("nftMint").textContent = found.mint;
+      document.getElementById("nftLevel").textContent = found.level || "1";
+      document.getElementById("nftName").textContent = found.name;
+      document.getElementById("nftSymbol").textContent = found.symbol;
+      document.getElementById("nftInfo").style.display = "block";
+      document.getElementById("nftEmpty").style.display = "none";
+      log(`Found StatePass: ${shorten(found.mint)} (Level ${found.level || 1})`, "success");
+    } else {
+      document.getElementById("nftInfo").style.display = "none";
+      document.getElementById("nftEmpty").style.display = "block";
+      log("No StatePass NFT found. You can mint one.", "info");
+    }
+  } catch (e) {
+    log(`Error finding NFT: ${e.message}`, "error");
+  }
+}
+
+async function getTokenMetadata(mint) {
+  // Try via server first
+  try {
+    const meta = await connection.getTokenMetadata(new solanaWeb3.PublicKey(mint));
+    if (meta) {
+      return meta;
+    }
+  } catch (e) {}
+  
+  // Fallback: read raw account
+  try {
+    const mintPk = new solanaWeb3.PublicKey(mint);
+    const acct = await connection.getAccountInfo(mintPk);
+    if (!acct) return null;
+    
+    // Try to parse Token-2022 metadata extension
+    // Use TokenMetadata from the mint
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Step 3: Server Status ──
+async function loadServerStatus() {
+  try {
+    const res = await fetch(`${SERVER_URL}/status`);
+    const data = await res.json();
+    
+    document.getElementById("srvProgram").textContent = data.program;
+    document.getElementById("srvPda").textContent = data.rateConfigPda;
+    
+    if (data.rateConfig) {
+      document.getElementById("srvL1").textContent = `${data.rateConfig.level1Rate} (${(data.rateConfig.level1Rate / 1e6).toFixed(6)} USDC)`;
+      document.getElementById("srvL2").textContent = `${data.rateConfig.level2Rate} (${(data.rateConfig.level2Rate / 1e6).toFixed(6)} USDC)`;
+      document.getElementById("srvL3").textContent = `${data.rateConfig.level3Rate} (${(data.rateConfig.level3Rate / 1e6).toFixed(6)} USDC)`;
+    }
+    
+    log("Server status loaded", "success");
+  } catch (e) {
+    log(`Server unreachable: ${e.message} (is server running?)`, "error");
+  }
+}
+
+// ── Mint NFT ──
+async function mintNFT() {
+  if (!provider || !publicKey) {
+    alert("Connect wallet first");
+    return;
+  }
+  
+  log("Requesting StatePass mint...", "info");
+  
+  // The mint instruction requires building a transaction with Anchor
+  // For the demo, we'll redirect to a separate mint page / guide
+  alert("Minting StatePass requires running the anchor test or CLI. In production, this would trigger a server-side mint. For now, run:\n\n  anchor test\n\nThen check the test output for your mint address.");
+}
+
+// ── x402 Flow ──
+async function getQuote() {
+  if (!nftMint) {
+    alert("You need a StatePass NFT first. Run `anchor test` to mint one.");
+    return;
+  }
+  
+  setStatus("status-quote", "requesting", "loading");
+  log(`Getting quote for mint: ${shorten(nftMint)}`, "info");
+  
+  try {
+    const res = await fetch(`${SERVER_URL}/premium?mint=${nftMint}`);
+    const data = await res.json();
+    
+    document.getElementById("quoteResult").classList.remove("hidden");
+    
+    if (res.status === 402 && data.payment) {
+      currentQuote = data.payment;
+      document.getElementById("quoteLevel").textContent = `Level ${data.payment.level}`;
+      document.getElementById("quotePrice").textContent = `${data.payment.amountUSDC} USDC`;
+      document.getElementById("quoteMsg").textContent = data.payment.message;
+      
+      setStatus("status-quote", `402 — ${data.payment.amountUSDC} USDC`, "success");
+      document.getElementById("step-quote").classList.add("done");
+      document.getElementById("step-quote").classList.remove("active");
+      document.getElementById("step-pay").classList.add("active");
+      document.getElementById("btnPay").disabled = false;
+      
+      log(`Quote received: Level ${data.payment.level}, ${data.payment.amountUSDC} USDC`, "success");
+    } else {
+      setStatus("status-quote", `unexpected response: ${res.status}`, "error");
+      log(`Unexpected quote response: ${JSON.stringify(data)}`, "error");
+    }
+  } catch (e) {
+    setStatus("status-quote", `error: ${e.message}`, "error");
+    log(`Quote failed: ${e.message}`, "error");
+  }
+}
+
+async function payAndUnlock() {
+  if (!provider || !publicKey || !currentQuote) {
+    alert("Connect wallet and get a quote first.");
+    return;
+  }
+
+  setStatus("status-pay", "signing", "loading");
+  document.getElementById("btnPay").disabled = true;
+  log("Building USDC transfer...", "info");
+
+  try {
+    // Get USDC mint and recipient from server
+    const statusRes = await fetch(`${SERVER_URL}/status`);
+    const status = await statusRes.json();
+
+    const usdcMint = new solanaWeb3.PublicKey(status.usdcMint);
+    const recipientATA = new solanaWeb3.PublicKey(status.recipientTokenAccount);
+    const amount = currentQuote.amount;
+
+    // Get sender's USDC ATA
+    const [senderATA] = solanaWeb3.PublicKey.findProgramAddress(
+      [publicKey.toBuffer(), solanaWeb3.TOKEN_PROGRAM_ID.toBuffer(), usdcMint.toBuffer()],
+      solanaWeb3.ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    // Check if ATA exists
+    const senderAcc = await connection.getAccountInfo(senderATA);
+    if (!senderAcc) {
+      throw new Error("You need USDC in your wallet. Fund with devnet USDC first.");
+    }
+
+    const bal = await connection.getTokenAccountBalance(senderATA);
+    const balAmount = Number(bal.value.amount);
+    log(`USDC balance: ${bal.value.uiAmount} (${balAmount} smallest)`, "info");
+
+    if (balAmount < amount) {
+      throw new Error(`Insufficient USDC. Have ${bal.value.uiAmount}, need ${currentQuote.amountUSDC}`);
+    }
+
+    // Build a raw SPL Token Transfer instruction
+    // Format: opcode(1) + amount(8) padding
+    const transferData = Buffer.alloc(9);
+    transferData[0] = 3; // opcode: Transfer
+    transferData.writeBigUInt64LE(BigInt(amount), 1);
+
+    const transferIx = {
+      programId: solanaWeb3.TOKEN_PROGRAM_ID,
+      keys: [
+        { pubkey: senderATA, isSigner: false, isWritable: true },
+        { pubkey: recipientATA, isSigner: false, isWritable: true },
+        { pubkey: publicKey, isSigner: true, isWritable: false }, // owner
+      ],
+      data: Array.from(transferData),
+    };
+
+    // Get blockhash once
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+
+    const tx = new solanaWeb3.Transaction({
+      feePayer: publicKey,
+      blockhash,
+      lastValidBlockHeight,
+    });
+    tx.add(transferIx);
+
+    // Request wallet to sign
+    setStatus("status-pay", "sign in wallet", "loading");
+    log("Requesting signature in wallet...", "info");
+
+    const signedTx = await provider.signTransaction(tx);
+
+    setStatus("status-pay", "submitting", "loading");
+    log("Submitting payment proof to server...", "info");
+
+    // Serialize and send to server
+    const serializedTx = Buffer.from(signedTx.serialize()).toString("base64");
+    const paymentProof = {
+      x402Version: 1,
+      scheme: "exact",
+      network: "solana-devnet",
+      payload: { serializedTransaction: serializedTx },
+    };
+    const xPaymentHeader = btoa(JSON.stringify(paymentProof));
+
+    const payRes = await fetch(`${SERVER_URL}/premium?mint=${nftMint}`, {
+      headers: { "X-Payment": xPaymentHeader },
+    });
+    const result = await payRes.json();
+
+    if (payRes.status === 200 && result.data) {
+      setStatus("status-pay", "verified", "success");
+      document.getElementById("step-pay").classList.add("done");
+      document.getElementById("step-pay").classList.remove("active");
+      document.getElementById("step-result").classList.add("active");
+
+      document.getElementById("premiumContent").classList.remove("hidden");
+      document.getElementById("premiumData").textContent = result.data;
+      if (result.paymentDetails) {
+        document.getElementById("premiumTx").innerHTML =
+          `TX: <a href="${result.paymentDetails.explorerUrl}" target="_blank" style="color: var(--accent);">${shorten(result.paymentDetails.signature, 16)}</a>`;
+      }
+
+      setStatus("status-result", "unlocked", "success");
+      log("✅ Premium content unlocked!", "success");
+    } else {
+      setStatus("status-pay", "failed", "error");
+      document.getElementById("payError").classList.remove("hidden");
+      document.getElementById("payErrorDetail").textContent = JSON.stringify(result, null, 2);
+      document.getElementById("btnPay").disabled = false;
+      log(`Payment failed: ${JSON.stringify(result)}`, "error");
+    }
+  } catch (e) {
+    setStatus("status-pay", `error: ${e.message}`, "error");
+    document.getElementById("btnPay").disabled = false;
+    log(`Payment error: ${e.message}`, "error");
+  }
+}
+</script>
+</body>
+</html>

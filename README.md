@@ -1,100 +1,166 @@
-# 🔗 StatePass: 基于 Token-2022 的动态 NFT (dNFT) 项目
+# StatePass × Solana x402 — Programmable Identity for AI Agents
 
-Solana Anchor program leveraging the Token-2022 Metadata extension to create dynamic, upgradable StatePass NFTs whose metadata is fully controlled by a Program Derived Address (PDA).
-StatePass 是一个基于 $\text{Token}$-2022 的动态数字资产标准，它将静态 $\text{NFT}$ 转化为可进化的会员卡、支付凭证和线下动态身份。
+> **Solana x402 Hackathon 2026** — *Minimum Viable Implementation*
 
-🚀 项目概述 (Project Overview)
+StatePass is a **Token-2022 dNFT** (dynamic NFT) that acts as programmatic identity for AI agents. Combined with the **x402** payment protocol, it enables:
 
-StatePass 是一个基于 Solana 区块链和 Anchor 框架构建的程序，它利用 Token-2022 标准及其 Token Metadata 扩展来实现动态 NFT (dNFT)。
+1. **Permission-free API access** — AI agents pay micro-transactions per API call
+2. **Tiered access control** — NFT level (1→2→3) determines per-request pricing
+3. **No API keys** — Payment IS authentication
 
-该 $\text{NFT}$ 被设计为一张具有可升级状态的“通行证”（StatePass），其元数据（如等级 Level 和 URI）可以由程序控制，而不是由初始的 Mint Authority 控制。
+## Architecture
 
-✨ 核心功能 (Core Features)
+```
+┌─────────────┐       ┌──────────────────┐       ┌─────────────┐
+│   AI Agent  │──────▶│  StatePass × x402 │──────▶│  Solana     │
+│  (Client)   │  HTTP │  Server (Node)    │  TX   │  Devnet     │
+└─────────────┘       └──────────────────┘       └─────────────┘
+                             │
+                             ├── Reads RateConfig PDA (pricing)
+                             ├── Reads dNFT metadata (level)
+                             └── Validates USDC payment
+```
 
-NFT Minting ($\text{MintNft}$):
+## Smart Contract (`programs/state-pass/`)
 
-铸造一个 $\text{Token-2022 NFT}$（$0$ 小数位，最大供应量 $1$）。
+### Key Instructions
 
-在 $\text{NFT}$ 上附加 $\text{Metadata}$ 扩展，包含初始 $\text{URI}$ 和自定义字段 level: 1。
+| Instruction | Description | Access |
+|---|---|---|
+| `initialize_rate_config` | Set L1/L2/L3 per-request prices | Deployer |
+| `set_rate` | Update a tier's price | RateConfig authority |
+| `mint_nft` | Mint StatePass dNFT (Token-2022) | Anyone |
+| `update_pass_level` | Upgrade NFT level + metadata | NFT Authority PDA only |
 
-铸造完成后，销毁 Mint Authority 和 Freeze Authority，并将 $\text{NFT}$ 的所有权交接给一个 Program Derived Address ($\text{PDA}$)，确保只有程序本身能够修改其元数据。
+### RateConfig PDA
 
-NFT Upgrading ($\text{UpdatePassLevel}$):
+- **Address (devnet):** `3GoWWZk1xbMqzKwTn5DKsgdDXjTo7g7RJbGgvkec8apU`
+- **Pricing:** L1=100 (0.0001 USDC), L2=250 (0.00025 USDC), L3=300 (0.0003 USDC)
 
-通过 $\text{PDA}$ 签名，调用 $\text{Token Metadata}$ 扩展的 UpdateField 指令。
+### Deployed
 
-将 $\text{NFT}$ 的等级字段 (level) 更新为新的值。
+| Network | Program ID | 
+|---|---|
+| **Devnet** | `21xpRqRTFk7N7ybdPA2RyTmRqQB9FH4Xerty9jeTU1Dx` |
+| Explorer | [View on SolanaFM](https://solana.fm/address/21xpRqRTFk7N7ybdPA2RyTmRqQB9FH4Xerty9jeTU1Dx?cluster=devnet-solana) |
 
-将 $\text{NFT}$ 的 $\text{URI}$ 更新为与新等级对应的元数据文件链接。
+## x402 Server (`server/`)
 
-发出 $\text{Anchor Event}$ (NftMetadataUpdated)，以便客户端可以实时监听状态变化。
+### Endpoints
 
-🛠️ 项目结构 (Project Structure)
+#### `GET /status`
+Returns server config + RateConfig state from the chain.
 
-智能合约 (Rust)
+```json
+{
+  "program": "21xpRqRTFk7N7ybdPA2RyTmRqQB9FH4Xerty9jeTU1Dx",
+  "rateConfigPda": "3GoWWZk1xbMqzKwTn5DKsgdDXjTo7g7RJbGgvkec8apU",
+  "rateConfig": {
+    "level1Rate": 100,
+    "level2Rate": 250,
+    "level3Rate": 300,
+    "maxLevel": 3
+  },
+  "usdcMint": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+  "recipientTokenAccount": "B11Pr7k9F4obQ54JY2vFvBG776buxp8ebC3VHXakZbjX"
+}
+```
 
-文件/目录
+#### `GET /premium?mint=<statepass-mint>`
+Returns HTTP **402 Payment Required** with a payment quote.
 
-描述
+#### `POST /premium?mint=<statepass-mint>` + `X-Payment` header
+Submit a pre-signed USDC transfer as payment proof. Returns **200 OK** with premium content.
 
-src/lib.rs
+### Full E2E Flow
 
-核心程序逻辑，包含所有指令、账户定义和事件定义。
+```mermaid
+sequenceDiagram
+    Client->>Server: GET /premium?mint=...
+    Server->>Solana: Read RateConfig PDA
+    Server->>Solana: Read dNFT metadata (level)
+    Server-->>Client: 402 + {amount, tokenAccount, level, message}
+    Client->>Client: Sign USDC transfer (not submitted)
+    Client->>Server: GET /premium + X-Payment header
+    Server->>Solana: Submit + confirm transfer
+    Server->>Solana: Call update_pass_level (PDA-signed)
+    Server-->>Client: 200 + {data: "premium unlocked", txId}
+```
 
-programs/state-pass/
+## Quick Start
 
-Anchor 项目根目录。
-
-Anchor.toml
-
-Anchor 配置和本地测试脚本。
-
-客户端测试 (TypeScript)
-
-文件
-
-描述
-
-tests/token-2022-nft.ts
-
-客户端测试脚本。验证 $\text{Mint}$、元数据初始化、$\text{PDA}$ 权限设置、以及 $\text{NFT}$ 升级和事件发射功能。集成了重试逻辑以确保本地测试环境的稳定性。
-
-💡 如何开始 (Getting Started)
-
-先决条件
-
-Rust 和 Cargo
-
-Solana CLI
-
-Anchor CLI (v0.29.0 或更高版本)
-
-Node.js (v18+) 和 yarn/npm
-
-编译与部署
-
-# 1. 构建合约
-
+```bash
+# 1. Contract
 anchor build
+anchor deploy --provider.cluster devnet
 
-# 2. 部署到本地/开发网
+# 2. Init RateConfig (one-time)
+python3 scripts/init-devnet.py
 
-# 注意: 替换为您自己的 Program ID
+# 3. Server
+cd server
+npm install
+npx tsx src/index.ts
 
-anchor deploy --program-id <YOUR_PROGRAM_ID>
+# 4. Test with CLI demo
+npx tsx cli-demo.ts <statepass-mint-address>
+```
 
-运行测试
+## Test Suite
 
-# 运行 TypeScript 测试套件
+6 test cases covering the full contract surface:
 
+1. ✅ Initialize
+2. ✅ Mint NFT (Token-2022 dNFT)
+3. ✅ Update pass level
+4. ✅ Initialize RateConfig
+5. ✅ Set rate
+6. ✅ Calibrate & event emission
+
+```bash
 anchor test
+```
 
-计划中的代码重构
+## Tech Stack
 
-为了提高可维护性，我们计划将 src/lib.rs 进行模块化拆分，例如：
+- **Solana** + **Anchor 0.32** — smart contract framework
+- **Token-2022** — dynamic NFT with on-chain metadata
+- **x402 Protocol** — HTTP 402 payment for API access
+- **@x402-solana/server** — payment verification middleware
+- **Express** — API server
 
-src/instructions/：放置所有指令逻辑。
+## Project Structure
 
-src/state.rs：放置账户和事件定义。
+```
+state-pass/
+├── programs/state-pass/
+│   ├── src/
+│   │   ├── lib.rs                  # Entry point + instruction routing
+│   │   ├── state.rs                # RateConfig, NftAuthority accounts
+│   │   ├── constants.rs            # PDA seeds, metadata field keys
+│   │   ├── error.rs                # Custom error codes
+│   │   ├── events.rs               # NftMetadataUpdated event
+│   │   └── instructions/
+│   │       ├── initialize.rs       # Program bootstrap
+│   │       ├── mint_nft.rs         # Token-2022 dNFT minting
+│   │       ├── update_pass_level.rs # Level upgrade via PDA signature
+│   │       └── rate_config.rs      # Pricing configuration
+├── tests/state-pass.ts             # 6 integration tests
+├── server/
+│   ├── src/index.ts                # x402 Express server
+│   ├── cli-demo.ts                 # Interactive CLI demo
+│   ├── test-e2e.ts                 # E2E integration test
+│   └── init-devnet.ts              # Devnet setup script
+└── Anchor.toml
+```
 
-这是下一个开发步骤。
+## Next Steps
+
+- [ ] Web frontend for minting + upgrading StatePass NFTs
+- [ ] Deploy to mainnet with real USDC
+- [ ] Integrate with AI agent frameworks (Eliza, LangChain)
+- [ ] Add webhook notifications for level upgrades
+
+---
+
+*Built for Solana x402 Hackathon 2026*
